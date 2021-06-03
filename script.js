@@ -65,7 +65,7 @@ App.birth = function () {
             y = -800 + 1600 * Math.random();
 
         let particle = {
-            hue: 195 + 3 * Math.floor(3 * Math.random()),
+            hue: 155 + 3 * Math.floor(3 * Math.random()),
             sat: 65 + 30 * Math.random(),
             lum: 15 + Math.floor(50 * Math.random()),
             x,
@@ -97,11 +97,11 @@ App.move = function () {
 
             // Eddies
             let eddies = [], baseK = 7;
-            eddies.push({ x: -300, y: -300, K: 10 * baseK, r0: 180 })
-            eddies.push({ x: 300, y: -300, K: 15 * baseK, r0: 150 })
-            eddies.push({ x: 300, y: 300, K: 10 * baseK, r0: 250 })
-            eddies.push({ x: -300, y: 300, K: 15 * baseK, r0: 150 })
-            eddies.push({ x: 0, y: 0, K: 5 * baseK, r0: 20 })
+            eddies.push({ x: -300, 	y: -300, 	K: 10 * baseK, 	r0: 180 })
+            eddies.push({ x: 300, 	y: -300, 	K: 15 * baseK, 	r0: 150 })
+            eddies.push({ x: 300, 	y: 300, 	K: 10 * baseK, 	r0: 250 })
+            eddies.push({ x: -300, 	y: 300, 	K: 15 * baseK, 	r0: 150 })
+            eddies.push({ x: 0, 	y: 0, 		K: 5 * baseK, 	r0: 20 })
             
             for (var e = 0; e < eddies.length; e++) {
                     let eddy = eddies[e];
@@ -152,7 +152,7 @@ App.initDraw = function () {
         // Background
         this.ctx.beginPath();
         this.ctx.rect(0, 0, this.width, this.height);
-        this.ctx.fillStyle = 'white';
+        this.ctx.fillStyle = 'black';
         this.ctx.fill();
         this.ctx.closePath();
 }
@@ -163,7 +163,7 @@ App.draw = function () {
 
         this.ctx.beginPath();
         this.ctx.rect(0, 0, this.width, this.height);
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
         this.ctx.closePath();
 
         for (let i = 0; i < this.particles.length; i++) {
@@ -175,7 +175,7 @@ App.draw = function () {
                 h = p.hue,
                 s = p.sat,
                 l = p.lum,
-                a = 0.3;
+                a = 0.8;
 
                 a = 0.3 + p.speed / 400;
 
@@ -227,10 +227,10 @@ Utils.segmentAngleRad = (Xstart, Ystart, Xtarget, Ytarget, realOrWeb) => {
                 result = Math.PI + Math.atan((Ytarget - Ystart)/(Xtarget - Xstart))
         }
         
-        result = (result + 2*Math.PI) % (2*Math.PI);
+        result = (result + 2 * Math.PI) % (2 * Math.PI);
 
         if (!realOrWeb) {
-                result = 2*Math.PI - result;
+                result = 2 * Math.PI - result;
         }
 
         return result;
