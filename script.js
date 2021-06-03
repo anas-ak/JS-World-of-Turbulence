@@ -1,5 +1,5 @@
-let App = {
-    App.setup = function () {
+let App = {}
+App.setup = function () {
         // The setup function initializes everything in a permanent way
         
         const canvas = document.createElement('canvas');
@@ -27,9 +27,9 @@ let App = {
         this.popPerBirth = 5;
         this.maxPop = 1500;
         this.birthFreq = 1;
-    }
+}
 
-    App.start = function () {
+App.start = function () {
         // The start function sets, and potentially resets things that will change over time
         this.stepCount = 0;
         this.particles = [];
@@ -40,9 +40,9 @@ let App = {
 
         // Initial paint (background most often)
         this.initDraw();
-    }
+}
 
-    App.evolve = function () {
+App.evolve = function () {
         let time1 = performance.now();
         this.stepCount++;
 
@@ -58,9 +58,9 @@ let App = {
         App.draw();
 
         let time2 = performance.now();
-    }
+}
 
-    App.birth = function () {
+App.birth = function () {
         let x = -800 + 1600 * Math.random(),
             y = -800 + 1600 * Math.random();
 
@@ -77,13 +77,13 @@ let App = {
         }
 
         this.particles.push(particle)
-    }
+}
 
-    App.kill = function (deadParticleName) {
+App.kill = function (deadParticleName) {
         this.particles = this.particles.filter(p => p.name != deadParticleName)
-    }
+}
 
-    App.move = function () {
+App.move = function () {
         for (let i = 0; i < this.particles.length; i++) {
             // Get particle
             let p = this.particles[i];
@@ -98,7 +98,152 @@ let App = {
             // Eddies
             let eddies = [], baseK = 7;
             eddies.push({ x: -300, y: -300, K: 10 * baseK, r0: 180 })
+            eddies.push({ x: 300, y: -300, K: 15 * baseK, r0: 150 })
+            eddies.push({ x: 300, y: 300, K: 10 * baseK, r0: 250 })
+            eddies.push({ x: -300, y: 300, K: 15 * baseK, r0: 150 })
+            eddies.push({ x: 0, y: 0, K: 5 * baseK, r0: 20 })
             
+            for (var e = 0; e < eddies.length; e++) {
+                    let eddy = eddies[e];
+                    let dx = p.x - eddy.x,
+                    dy = p.y - eddy.y, 
+                    r = Math.sqrt(dx*dx + dy*dy),
+                    theta = Utils.segmentAngleRad(0, 0, dx, dy, true),
+                    cos = Math.cos(theta), sin = Math.sin(theta),
+                    K = eddy.K, // intensity
+                    r0 = eddy.r0
+
+                    let er = { x: cos, y: sin },
+                    eO = { x: -sin, y: cos }
+
+                    let radialVelocity = -0.003 * K * Math.abs(dx*dy) / 3000,
+                    sigma = 100,
+                    azimutalVelocity = K * Math.exp(-Math.pow((r - r0) / sigma, 2))
+
+                    p.xSpeed += radialVelocity * er.x + azimutalVelocity * eO.x
+                    p.ySpeed += radialVelocity * er.y + azimutalVelocity * eO.y
+                }
+
+            // Viscosity
+
+            let visc = 1
+            p.xSpeed *= visc;
+            p.ySpeed *= visc;
+            p.speed = Math.sqrt(p.xSpeed * p.xSpeed + p.ySpeed * p.ySpeed);
+
+            p.x += 0.1 * p.xSpeed;
+            p.y += 0.1 * p.ySpeed;
+        
+            // Get older
+            p.age++;
+        
+            // Kill if too old
+            if (p.age > this.lifespan) {
+                    this.kill(p.name);
+                    this.deathCount++;
+            }
         }
-    }
 }
+
+App.initDraw = function () {
+        // Reset
+        this.ctx.clearRect(0, 0, this.width, this.height)
+
+        // Background
+        this.ctx.beginPath();
+        this.ctx.rect(0, 0, this.width, this.height);
+        this.ctx.fillStyle = 'white';
+        this.ctx.fill();
+        this.ctx.closePath();
+}
+
+App.draw = function () {
+        this.drawnInLastFrame = 0;
+        if(!this.particles.length) return false;
+
+        this.ctx.beginPath();
+        this.ctx.rect(0, 0, this.width, this.height);
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+        this.ctx.closePath();
+
+        for (let i = 0; i < this.particles.length; i++) {
+                // Draw particle
+                let p = this.particles[i];
+
+                let h, s, l, a;
+
+                h = p.hue,
+                s = p.sat,
+                l = p.lum,
+                a = 0.3;
+
+                a = 0.3 + p.speed / 400;
+
+                let last = this.dataXYtoCanvasXY(p.xLast, p.yLast),
+                now = this.dataXYtoCanvasXY(p.x, p.y);
+
+                this.ctx.beginPath();
+
+                this.ctx.strokeStyle = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + a + ')';
+                this.ctx.fillStyle = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + a + ')';
+                
+                // Particle trail
+                this.ctx.moveTo(last.x, last.y);
+                this.ctx.lineTo(now.x, now.y);
+
+                let size = .4 * (3 - 4 * p.age / 500);
+                
+                this.ctx.lineWidth = 1 * size * this.dataToImageRatio;
+                this.ctx.stroke();
+                this.ctx.closePath();
+                
+                // UI Counter
+                this.drawnInLastFrame++;
+        }
+}
+
+App.dataXYtoCanvasXY = function (x, y) {
+        const zoom = 0.72;
+        let xx = this.xC + x * zoom * this.dataToImageRatio,
+            yy = this.yC + y * zoom * this.dataToImageRatio
+
+        return { x: xx, y: yy }
+}
+
+let Utils = {};
+Utils.segmentAngleRad = (Xstart, Ystart, Xtarget, Ytarget, realOrWeb) => {
+        let result;
+        if (Xstart == Xtarget) {
+                if (Ystart == Ytarget) {
+                        result = 0;           
+                } else if (Ystart < Ytarget) {
+                        result = Math.PI/2;
+                } else if (Ystart > Ytarget) {
+                        result = 3 * Math.PI/2;
+                } else {}
+        } else if (Xstart < Xtarget) {
+                result = Math.atan((Ytarget - Ystart) / (Xtarget - Xstart));
+        } else if (Xstart > Xtarget) {
+                result = Math.PI + Math.atan((Ytarget - Ystart)/(Xtarget - Xstart))
+        }
+        
+        result = (result + 2*Math.PI) % (2*Math.PI);
+
+        if (!realOrWeb) {
+                result = 2*Math.PI - result;
+        }
+
+        return result;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+        App.setup();
+        App.start();
+
+        let frame = () => {
+                App.evolve();
+                requestAnimationFrame(frame)
+        }
+
+        frame();
+})
